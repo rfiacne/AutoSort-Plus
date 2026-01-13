@@ -11,16 +11,35 @@
         
         <div class="section">
             <h2>AI Settings</h2>
+            
             <div class="input-group">
-                <label for="gemini-api-key">Gemini API Key:</label>
-                <input type="password" id="gemini-api-key" class="api-key-input" placeholder="Enter your Gemini API key">
-                <button id="test-api" class="button">Test API Connection</button>
+                <label for="ai-provider">AI Provider:</label>
+                <select id="ai-provider" class="provider-select">
+                    <option value="gemini">Google Gemini (Recommended)</option>
+                    <option value="openai">OpenAI (ChatGPT)</option>
+                    <option value="anthropic">Anthropic Claude</option>
+                    <option value="groq">Groq (Fast & Free)</option>
+                    <option value="mistral">Mistral AI</option>
+                </select>
+            </div>
+            
+            <div id="provider-info" class="provider-info"></div>
+            
+            <div class="input-group">
+                <label for="api-key" id="api-key-label">API Key:</label>
+                <input type="password" id="api-key" class="api-key-input" placeholder="Enter your API key">
+                <div class="button-group">
+                    <button id="test-api" class="button">Test API Connection</button>
+                    <button id="get-api-key" class="button button-link">Get API Key</button>
+                </div>
                 <div id="api-test-result" class="api-test-result"></div>
             </div>
+            
             <div class="checkbox-container">
                 <input type="checkbox" id="enable-ai" checked>
                 <label for="enable-ai">Enable AI-powered sorting</label>
             </div>
+            
             <div class="ai-description">
                 <p>AutoSort+ uses AI to analyze your emails and automatically sort them into categories/folders based on their content. The AI will:</p>
                 <ul>
@@ -34,6 +53,19 @@
 
         <div class="section">
             <h2>Custom Categories/Folders</h2>
+            <div class="folder-source">
+                <h3>Folder Source</h3>
+                <button id="load-imap-folders" class="button">Load Folders from Mail Account</button>
+                <div id="folder-loading" class="loading-indicator" style="display: none;">Loading folders...</div>
+                <div id="folder-selection" class="folder-selection" style="display: none;">
+                    <p>Found <span id="folder-count">0</span> folders in your mail account. Would you like to use these?</p>
+                    <div id="folders-preview" class="folders-preview"></div>
+                    <div class="button-group">
+                        <button id="use-imap-folders" class="button primary">Use These Folders</button>
+                        <button id="use-custom-folders" class="button">Use Custom Folders Instead</button>
+                    </div>
+                </div>
+            </div>
             <div class="bulk-import">
                 <label for="bulk-import-text">Import Categories/Folders (one per line):</label>
                 <textarea id="bulk-import-text" class="bulk-import-textarea" placeholder="Enter categories/folders, one per line"></textarea>

@@ -12,40 +12,47 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 // Function to show notification
 async function showNotification(title, message, type = "basic") {
+    // Log to console (Thunderbird doesn't support browser.notifications)
+    console.log(`[AutoSort+] ${title}: ${message}`);
+    
+    // Try to show notification if API is available
     try {
-        const id = `autosort-${Date.now()}`;
-        await browser.notifications.create(id, {
-            type: type,
-            iconUrl: browser.runtime.getURL("icons/icon-48.png"),
-            title: title,
-            message: message,
-            eventTime: Date.now(),
-            priority: 2,
-            requireInteraction: true  // This will make the notification stay until dismissed
-        });
-        return id;
+        if (browser.notifications && browser.notifications.create) {
+            const id = `autosort-${Date.now()}`;
+            await browser.notifications.create(id, {
+                type: type,
+                iconUrl: browser.runtime.getURL("icons/icon-48.png"),
+                title: title,
+                message: message,
+                eventTime: Date.now(),
+                priority: 2,
+                requireInteraction: true
+            });
+            return id;
+        }
     } catch (error) {
-        console.error("Error showing notification:", error);
-        // Fallback to console if notification fails
-        console.log(`[AutoSort+] ${title}: ${message}`);
+        // Silently fail - notifications not supported
     }
+    return null;
 }
 
 // Function to update existing notification
 async function updateNotification(id, title, message) {
+    // Log to console
+    console.log(`[AutoSort+] ${title}: ${message}`);
+    
+    // Try to update notification if API is available
     try {
-        // Close the old notification
-        await browser.notifications.clear(id);
-        // Create a new notification
-        return await showNotification(title, message);
+        if (browser.notifications && browser.notifications.clear && id) {
+            await browser.notifications.clear(id);
+        }
     } catch (error) {
-        console.error("Error updating notification:", error);
-        // Fallback to console if notification fails
-        console.log(`[AutoSort+] ${title}: ${message}`);
+        // Silently fail - notifications not supported
     }
+    return await showNotification(title, message);
 }
 
-// Function to analyze email content using Gemini
+// Function to analyze email content using AI
 async function analyzeEmailContent(emailContent) {
     try {
         const notificationId = await showNotification(
@@ -53,28 +60,45 @@ async function analyzeEmailContent(emailContent) {
             "Starting email analysis..."
         );
 
-        const settings = await browser.storage.local.get(['geminiApiKey', 'labels', 'enableAi']);
+        const settings = await browser.storage.local.get(['apiKey', 'aiProvider', 'labels', 'enableAi']);
+        const provider = settings.aiProvider || 'gemini';
+        
         console.log("Settings retrieved:", {
-            hasApiKey: !!settings.geminiApiKey,
+            hasApiKey: !!settings.apiKey,
+            provider: provider,
             labels: settings.labels,
             enableAi: settings.enableAi !== false
         });
         
-        if (settings.enableAi === false || !settings.geminiApiKey || !settings.labels || settings.labels.length === 0) {
-            console.error("Missing configuration");
+        if (settings.enableAi === false) {
+            console.error("AI is disabled");
             await updateNotification(
                 notificationId,
                 "AutoSort+ Error",
-                "AI analysis is not properly configured. Please check your settings."
+                "AI analysis is disabled in settings."
             );
             return null;
         }
-
-        await updateNotification(
-            notificationId,
-            "AutoSort+ AI Analysis",
-            "Sending request to Gemini AI..."
-        );
+        
+        if (!settings.apiKey) {
+            console.error("Missing API key");
+            await updateNotification(
+                notificationId,
+                "AutoSort+ Error",
+                `${provider.charAt(0).toUpperCase() + provider.slice(1)} API key not configured. Please add your API key in settings.`
+            );
+            return null;
+        }
+        
+        if (!settings.labels || settings.labels.length === 0) {
+            console.error("No labels configured");
+            await updateNotification(
+                notificationId,
+                "AutoSort+ Error",
+                "No folders/labels configured. Please go to settings and either load folders from your mail account or add custom labels."
+            );
+            return null;
+        }
 
         const prompt = `You are an email classification assistant. Analyze this email content and choose the most appropriate label from this list: ${settings.labels.join(', ')}. 
         Consider the following:
@@ -88,46 +112,172 @@ async function analyzeEmailContent(emailContent) {
         Email content:
         ${emailContent}`;
 
-        console.log("Making API request to Gemini...");
-        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${settings.geminiApiKey}`;
-        console.log("API URL:", apiUrl);
-        
         await updateNotification(
             notificationId,
             "AutoSort+ AI Analysis",
-            "Analyzing email content with Gemini AI..."
+            `Sending request to ${provider.charAt(0).toUpperCase() + provider.slice(1)} AI...`
         );
 
-        const requestBody = {
-            contents: [{
-                parts: [{
-                    text: prompt
-                }]
-            }],
-            generationConfig: {
-                temperature: 0.2,
-                topK: 1,
-                topP: 1,
-                maxOutputTokens: 10
-            }
-        };
-        console.log("Request body:", JSON.stringify(requestBody));
+        let response;
+        let data;
 
-        const response = await fetch(apiUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(requestBody)
-        });
+        if (provider === 'gemini') {
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${settings.apiKey}`;
+            console.log("Making API request to Gemini...");
+            
+            await updateNotification(
+                notificationId,
+                "AutoSort+ AI Analysis",
+                "Analyzing email content with Gemini AI..."
+            );
+
+            const requestBody = {
+                contents: [{
+                    role: "user",
+                    parts: [{
+                        text: prompt
+                    }]
+                }],
+                generationConfig: {
+                    temperature: 0.2,
+                    topK: 1,
+                    topP: 1,
+                    maxOutputTokens: 50,
+                    responseMimeType: "text/plain",
+                    thinkingConfig: {
+                        thinkingBudget: 0
+                    }
+                },
+                safetySettings: [
+                    {
+                        category: "HARM_CATEGORY_HARASSMENT",
+                        threshold: "BLOCK_NONE"
+                    },
+                    {
+                        category: "HARM_CATEGORY_HATE_SPEECH",
+                        threshold: "BLOCK_NONE"
+                    },
+                    {
+                        category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                        threshold: "BLOCK_NONE"
+                    },
+                    {
+                        category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+                        threshold: "BLOCK_NONE"
+                    }
+                ]
+            };
+
+            response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestBody)
+            });
+
+        } else if (provider === 'openai') {
+            console.log("Making API request to OpenAI...");
+            
+            await updateNotification(
+                notificationId,
+                "AutoSort+ AI Analysis",
+                "Analyzing email content with OpenAI..."
+            );
+
+            response = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${settings.apiKey}`
+                },
+                body: JSON.stringify({
+                    model: 'gpt-4o-mini',
+                    messages: [{ role: 'user', content: prompt }],
+                    max_tokens: 50,
+                    temperature: 0.2
+                })
+            });
+
+        } else if (provider === 'anthropic') {
+            console.log("Making API request to Anthropic...");
+            
+            await updateNotification(
+                notificationId,
+                "AutoSort+ AI Analysis",
+                "Analyzing email content with Claude..."
+            );
+
+            response = await fetch('https://api.anthropic.com/v1/messages', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': settings.apiKey,
+                    'anthropic-version': '2023-06-01'
+                },
+                body: JSON.stringify({
+                    model: 'claude-3-haiku-20240307',
+                    messages: [{ role: 'user', content: prompt }],
+                    max_tokens: 50
+                })
+            });
+
+        } else if (provider === 'groq') {
+            console.log("Making API request to Groq...");
+            
+            await updateNotification(
+                notificationId,
+                "AutoSort+ AI Analysis",
+                "Analyzing email content with Groq..."
+            );
+
+            response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${settings.apiKey}`
+                },
+                body: JSON.stringify({
+                    model: 'llama-3.3-70b-versatile',
+                    messages: [{ role: 'user', content: prompt }],
+                    max_tokens: 50,
+                    temperature: 0.2
+                })
+            });
+
+        } else if (provider === 'mistral') {
+            console.log("Making API request to Mistral...");
+            
+            await updateNotification(
+                notificationId,
+                "AutoSort+ AI Analysis",
+                "Analyzing email content with Mistral..."
+            );
+
+            response = await fetch('https://api.mistral.ai/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${settings.apiKey}`
+                },
+                body: JSON.stringify({
+                    model: 'mistral-small-latest',
+                    messages: [{ role: 'user', content: prompt }],
+                    max_tokens: 50,
+                    temperature: 0.2
+                })
+            });
+
+        } else {
+            throw new Error(`Unknown provider: ${provider}`);
+        }
 
         console.log("API response status:", response.status);
-        console.log("API response headers:", Object.fromEntries(response.headers.entries()));
 
         if (!response.ok) {
             const error = await response.json();
             console.error("API Error details:", error);
-            let errorMessage = error.error?.message || 'Unknown error';
+            let errorMessage = error.error?.message || error.message || 'Unknown error';
             
             // Handle quota errors specifically
             if (response.status === 429 || errorMessage.includes('quota') || errorMessage.includes('rate limit')) {
@@ -148,8 +298,40 @@ async function analyzeEmailContent(emailContent) {
             "Processing AI response..."
         );
 
-        const data = await response.json();
-        const label = data.candidates[0].content.parts[0].text.trim();
+        data = await response.json();
+        console.log("Full API response data:", JSON.stringify(data, null, 2));
+        
+        // Parse the response based on provider
+        let label = null;
+        
+        if (provider === 'gemini') {
+            if (data.candidates && data.candidates.length > 0) {
+                const candidate = data.candidates[0];
+                if (candidate.finishReason === "MAX_TOKENS") {
+                    console.error("Response truncated");
+                    await updateNotification(notificationId, "AutoSort+ Error", "AI response was cut off");
+                    return null;
+                }
+                if (candidate.content && candidate.content.parts && candidate.content.parts.length > 0) {
+                    label = candidate.content.parts[0].text.trim();
+                }
+            }
+        } else if (provider === 'openai' || provider === 'groq' || provider === 'mistral') {
+            if (data.choices && data.choices.length > 0) {
+                label = data.choices[0].message.content.trim();
+            }
+        } else if (provider === 'anthropic') {
+            if (data.content && data.content.length > 0) {
+                label = data.content[0].text.trim();
+            }
+        }
+        
+        if (!label) {
+            console.error("No label extracted from response:", data);
+            await updateNotification(notificationId, "AutoSort+ Error", "No response from AI");
+            return null;
+        }
+        
         console.log("Generated label:", label);
         
         // Verify the label exists in our list
@@ -161,11 +343,11 @@ async function analyzeEmailContent(emailContent) {
             );
             return label;
         } else {
-            console.log("Label not found in configured labels");
+            console.log("Label not found in configured labels. Generated:", label);
             await updateNotification(
                 notificationId,
                 "AutoSort+ Warning",
-                "AI analysis complete but no matching label found."
+                `AI suggested: "${label}" but it's not in your configured labels.`
             );
             return null;
         }
