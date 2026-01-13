@@ -191,7 +191,7 @@ Click **"Get API Key"** in AutoSort+ settings to open signup page instantly.
 
 ## 📝 Version History
 
-### v1.1.0 (2026-01-13) - Multi-Provider Release ⭐
+### v1.2.0 (2026-01-13) - Multi-Provider Release ⭐
 - ✅ Multi-provider AI support (Gemini, OpenAI, Anthropic, Groq, Mistral)
 - ✅ Groq API updated to llama-3.3-70b (Mixtral deprecated)
 - ✅ IMAP folder discovery with recursive traversal
