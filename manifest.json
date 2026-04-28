@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "AutoSort+",
-  "version": "1.2.3.3",
+  "version": "1.2.3.4",
   "description": "__MSG_extensionDescription__",
   "author": "Nigel Hagen",
   "applications": {
@@ -17,19 +17,24 @@
     "accountsRead",
     "storage",
     "menus",
-    "tabs",
     "messagesMove",
-    "activeTab",
     "https://generativelanguage.googleapis.com/*",
-    "http://localhost/*",
-    "http://127.0.0.1/*"
+    "http://localhost:11434/*",
+    "http://127.0.0.1:11434/*",
+    "http://localhost:1234/*",
+    "http://127.0.0.1:1234/*"
   ],
   "background": {
-    "scripts": ["js/logger.js", "background.js"]
+    "scripts": ["background.js"]
   },
   "content_scripts": [
     {
-      "matches": ["*://*/*"],
+      "matches": [
+        "http://localhost:11434/*",
+        "http://127.0.0.1:11434/*",
+        "http://localhost:1234/*",
+        "http://127.0.0.1:1234/*"
+      ],
       "js": ["content.js"]
     }
   ],
@@ -48,7 +53,6 @@
   "web_accessible_resources": [
     "api_ollama/index.html",
     "api_ollama/ollama-popup.js",
-    "js/ollama.js",
-    "js/workers/ollama-worker.js"
+    "js/ollama.js"
   ]
 } 

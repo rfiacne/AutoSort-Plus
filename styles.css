@@ -194,6 +194,12 @@ h2 {
     color: white;
 }
 
+.api-test-result.info {
+    display: block;
+    background-color: #0066cc;
+    color: white;
+}
+
 .warning-box {
     background-color: #fff3cd;
     border: 1px solid #ffc107;

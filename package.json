@@ -1,0 +1,37 @@
+{
+  "name": "autosort-plus",
+  "version": "1.2.3.3",
+  "description": "AI-powered email sorting Thunderbird extension",
+  "private": true,
+  "scripts": {
+    "build": "node build/esbuild.config.mjs",
+    "watch": "node build/esbuild.config.mjs --watch",
+    "lint": "eslint .",
+    "format": "prettier --check .",
+    "format:fix": "prettier --write .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "check": "npm run typecheck && npm run lint && npm run test",
+    "xpi": "npm run build && node build/package-xpi.mjs"
+  },
+  "keywords": [
+    "thunderbird",
+    "extension",
+    "email",
+    "ai",
+    "sorting"
+  ],
+  "author": "Nigel Hagen",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "@vitest/coverage-v8": "^4.1.5",
+    "esbuild": "^0.28.0",
+    "eslint": "^10.2.1",
+    "prettier": "^3.8.3",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.5"
+  }
+}

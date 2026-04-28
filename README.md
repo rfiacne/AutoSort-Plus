@@ -128,8 +128,12 @@ Choose from **5 leading cloud AI providers** or run a **local Ollama** model:
 ```bash
 git clone https://github.com/Nigel1992/AutoSort-Plus.git
 cd AutoSort-Plus
-zip -r autosortplus.xpi manifest.json background.js options.js options.html styles.css content.js icons/ js/ _locales/
+npm install
+npm run build
+npm run xpi
 ```
+
+Then load `autosortplus.xpi` as described in Option 1.
 
 <div align="center">
 
@@ -617,6 +621,67 @@ If you encounter any issues, please [open an issue on GitHub](https://github.com
 1. Check [Troubleshooting](#troubleshooting) section
 2. Search existing issues
 3. Include Thunderbird version and extension version
+
+---
+
+## Development
+
+### Prerequisites
+
+- Node.js 18+
+- npm
+
+### Setup
+
+```bash
+git clone https://github.com/Nigel1992/AutoSort-Plus.git
+cd AutoSort-Plus
+npm install
+```
+
+### Architecture
+
+```
+src/
+├── background/       Background script (AI, batch, folders, auto-sort)
+├── options/          Options page UI
+├── shared/           Shared utilities (logger, storage, i18n, tab-fetch)
+├── types/            TypeScript type definitions
+├── content.ts        Content script
+├── ollama.ts         Ollama API client
+├── workers/          Web Workers
+└── popup/            Web-accessible popups
+```
+
+### Commands
+
+| Command | Description |
+|---------|-------------|
+| `npm run build` | Build extension to `dist/` |
+| `npm run watch` | Build and watch for changes |
+| `npm run test` | Run tests |
+| `npm run test:watch` | Run tests in watch mode |
+| `npm run test:coverage` | Run tests with coverage report |
+| `npm run lint` | Lint source code |
+| `npm run format` | Check formatting |
+| `npm run format:fix` | Fix formatting |
+| `npm run typecheck` | TypeScript type checking |
+| `npm run check` | Full check (typecheck + lint + test) |
+| `npm run xpi` | Build + package as `.xpi` |
+
+### Load in Thunderbird
+
+1. `npm run build`
+2. In Thunderbird, go to `about:debugging` → This Thunderbird → Load Temporary Add-on
+3. Select `dist/manifest.json`
+
+### Tech Stack
+
+- TypeScript (strict mode)
+- esbuild (bundler)
+- Vitest (test framework)
+- ESLint + Prettier (code quality)
+- Thunderbird WebExtension APIs
 
 ---
 

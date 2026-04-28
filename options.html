@@ -241,6 +241,7 @@
                 <li><code>{body}</code> — <span data-i18n="customPromptBodyLabel">Email body content (recommended)</span></li>
                 <li><code>{email}</code> — <span data-i18n="customPromptEmailLabel">Email content (legacy, same as {body})</span></li>
             </ul>
+            <p class="hint"><strong>Note:</strong> Malicious emails may contain prompt injection. Place <code>{body}</code> at the end of your prompt after classification instructions.</p>
             <p class="hint">💡 <span data-i18n="customPromptTip">Tip: Use <code>{subject}</code> and <code>{attachments}</code> for better classification accuracy.</span></p>
             <textarea id="custom-prompt-text" class="prompt-textarea" data-i18n-placeholder="customPromptTextareaPlaceholder" placeholder="Enter your custom prompt..." rows="10"></textarea>
             <button id="reset-prompt" class="button" data-i18n="resetPromptButton">Reset to Default</button>
@@ -320,8 +321,6 @@
     </div>
 
 </div>
-<script src="js/i18n.js"></script>
-<script src="js/logger.js"></script>
 <script src="options.js"></script>
 </body>
 </html>
